@@ -9,6 +9,10 @@
       href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@500;700;800&family=JetBrains+Mono:wght@700;800&display=swap"
       rel="stylesheet"
     />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@500;700;800&family=JetBrains+Mono:wght@700;800&family=Poppins:wght@500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
     <style>
       /* ============ DESIGN TOKENS & GROUP COLORS ============ */
       :root {
@@ -172,6 +176,31 @@
         box-shadow: none;
         opacity: 0.7;
       }
+      .desk-icon {
+        font-size: 26px;
+        line-height: 1;
+        pointer-events: none;
+      }
+
+      .desk-sub-label {
+        position: absolute;
+        bottom: 2px;
+        left: 0;
+        right: 0;
+        font-size: 10px;
+        font-weight: 800;
+        color: #475569;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 0 2px;
+        pointer-events: none;
+      }
+
+      .desk.active .desk-sub-label {
+        color: #ffffff;
+      }
       .btn-versus {
         background: linear-gradient(135deg, #f97316, #ef4444) !important;
         font-size: 1.05rem;
@@ -213,6 +242,14 @@
         font-size: 0.9rem;
         color: white;
         box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.3);
+      }
+      .team-badge .crown-icon {
+        display: none;
+        font-size: 1rem;
+        line-height: 1;
+      }
+      .team-badge.is-leader .crown-icon {
+        display: inline-block;
       }
       .team-badge .tb-score {
         background: rgba(255, 255, 255, 0.25);
@@ -542,6 +579,7 @@
         display: inline-block;
       }
       .meaning-hint {
+        font-family: "Poppins", "Fredoka", sans-serif !important;
         font-size: 1.4rem;
         color: #334155;
         font-weight: 700;
@@ -556,8 +594,8 @@
         font-size: 3.5rem;
         font-weight: 800;
         color: #0f172a;
-        text-transform: uppercase;
-        font-family: "JetBrains Mono", monospace;
+        /* text-transform: uppercase; */
+        font-family: "Poppins", "Fredoka", sans-serif !important;
         margin: 8px 0;
         letter-spacing: 8px;
         min-height: 66px;
@@ -567,7 +605,7 @@
         font-weight: 800;
         color: #0f172a;
         margin: 8px 0;
-        font-family: "Fredoka", inherit;
+        font-family: "Poppins", "Fredoka", sans-serif !important;
       }
       .correct-reveal {
         font-size: 3.5rem;
@@ -577,8 +615,8 @@
         -webkit-text-fill-color: transparent;
         display: none;
         margin: 8px 0;
-        font-family: "JetBrains Mono", monospace;
-        text-transform: uppercase;
+        font-family: "Poppins", "Fredoka", sans-serif !important;
+        /* text-transform: uppercase; */
       }
       .mingle-images img {
         width: 240px;
@@ -610,6 +648,12 @@
         cursor: pointer;
         box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
       }
+      .btn-return-layout:disabled {
+        background: #64748b !important;
+        cursor: not-allowed;
+        box-shadow: none;
+        opacity: 0.6;
+      }
 
       .fighter-card {
         background: rgba(255, 255, 255, 0.98);
@@ -630,7 +674,8 @@
           transform 0.2s,
           filter 0.3s,
           box-shadow 0.3s,
-          border-color 0.3s;
+          border-color 0.3s,
+          opacity 0.3s;
       }
       .trophy-space {
         position: absolute;
@@ -671,6 +716,10 @@
         border: none;
         border-radius: 12px;
         cursor: pointer;
+      }
+      .winner-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
       }
       .key-hint {
         margin-left: 6px;
@@ -729,6 +778,12 @@
       #teamArena .fighter-card.is-answering {
         border-color: #fbbf24 !important;
         box-shadow: 0 0 30px #fbbf24 !important;
+      }
+      /* I-gray out at i-disable ang ibang cards kapag may napiling team o kapag time out */
+      #teamArena .fighter-card.is-disabled {
+        opacity: 0.4;
+        filter: grayscale(100%);
+        pointer-events: none;
       }
       #teamArena .btn-row {
         display: flex;
@@ -1076,6 +1131,7 @@
               class="btn-return-layout"
               id="teamReturnBtn"
               onclick="returnToRoomLayout()"
+              disabled
             >
               NEXT QUESTION ➔
             </button>
@@ -1224,7 +1280,7 @@
         const badge = document.createElement("div");
         badge.className = "team-badge";
         badge.dataset.team = teamId;
-        badge.innerHTML = `Team ${teamId} <span class="tb-score">0</span>`;
+        badge.innerHTML = `<span class="crown-icon">👑</span>Team ${teamId} <span class="tb-score"><span class="tb-num">0</span> <span class="tb-unit">点</span></span>`;
 
         const newRow = document.createElement("div");
         newRow.className = "desk-row";
@@ -1244,9 +1300,11 @@
         del.onclick = () => {
           delete teamScores[teamId];
           container.remove();
+          updateLeaderCrowns();
         };
         container.append(badge, newRow, del);
         wrapper.prepend(container);
+        updateLeaderCrowns();
       }
 
       function getTeamOfDesk(deskEl) {
@@ -1254,25 +1312,65 @@
         return row ? row.dataset.team : null;
       }
 
+      function updateLeaderCrowns() {
+        const badges = document.querySelectorAll(".team-badge");
+        if (!badges.length) return;
+
+        let maxScore = -Infinity;
+        Object.values(teamScores).forEach((s) => {
+          const score = Number(s) || 0;
+          if (score > maxScore) maxScore = score;
+        });
+
+        badges.forEach((badge) => {
+          const tId = badge.dataset.team;
+          const score = Number(teamScores[tId]) || 0;
+          badge.classList.toggle(
+            "is-leader",
+            maxScore > 0 && score === maxScore,
+          );
+        });
+      }
+
       function refreshTeamBadge(teamId) {
-        const badge = document.querySelector(
-          `.team-badge[data-team="${teamId}"] .tb-score`,
+        const numEl = document.querySelector(
+          `.team-badge[data-team="${teamId}"] .tb-score .tb-num`,
         );
-        if (badge) badge.innerText = teamScores[teamId] || 0;
+        if (numEl) numEl.innerText = teamScores[teamId] || 0;
+        updateLeaderCrowns();
       }
 
       function createDesk(num) {
         const d = document.createElement("div");
         d.className = "desk";
         d.dataset.id = num;
-        d.innerText = num;
+        d.dataset.studentName = String(num);
+        d.title = `Student ${num}`;
         d.draggable = true;
+
+        const iconEl = document.createElement("span");
+        iconEl.className = "desk-icon";
+        iconEl.innerText = "👤";
+
+        const labelEl = document.createElement("span");
+        labelEl.className = "desk-sub-label";
+        labelEl.innerText = "";
+
+        d.append(iconEl, labelEl);
+
         d.addEventListener("dragstart", () => d.classList.add("dragging"));
         d.addEventListener("dragend", () => d.classList.remove("dragging"));
+
         d.onclick = () => {
-          const newName = prompt("Enter student name:", d.innerText);
-          if (newName !== null && newName !== "") d.innerText = newName;
+          const currentVal = d.dataset.studentName || num;
+          const newName = prompt("Enter student name:", currentVal);
+          if (newName !== null && newName.trim() !== "") {
+            d.dataset.studentName = newName.trim();
+            d.title = newName.trim();
+            labelEl.innerText = newName.trim();
+          }
         };
+
         return d;
       }
 
@@ -1398,6 +1496,9 @@
         document.getElementById("teamDrawBtn").disabled = false;
         document.getElementById("teamDrawBtn").style.display = "inline-block";
         document.getElementById("teamReturnBtn").style.display = "inline-block";
+        // Naka-disable ang Next Question habang may oras pa
+        document.getElementById("teamReturnBtn").disabled = true;
+
         isAnswering = false;
 
         document
@@ -1409,6 +1510,7 @@
             "is-loser",
             "is-answering",
             "is-frozen",
+            "is-disabled",
           );
           delete c.dataset.resolved;
         });
@@ -1440,6 +1542,11 @@
         if (isAnswering && card.classList.contains("is-answering")) {
           isAnswering = false;
           card.classList.remove("is-answering");
+          document.querySelectorAll("#teamArena .fighter-card").forEach((c) => {
+            if (!c.dataset.resolved) {
+              c.classList.remove("is-disabled");
+            }
+          });
           resumeTimer(savedTime);
           return;
         }
@@ -1450,7 +1557,15 @@
         isAnswering = true;
         clearInterval(answerTimerInterval);
         clearInterval(shuffleInterval);
-        card.classList.add("is-answering");
+
+        document.querySelectorAll("#teamArena .fighter-card").forEach((c) => {
+          if (c.dataset.teamid === String(teamId)) {
+            c.classList.add("is-answering");
+            c.classList.remove("is-disabled");
+          } else {
+            c.classList.add("is-disabled");
+          }
+        });
       }
 
       function resumeTimer(seconds) {
@@ -1514,6 +1629,9 @@
         );
         if (!card || card.dataset.resolved) return;
 
+        // Hindi na disable ang Next Question kapag napindot ang Correct button
+        document.getElementById("teamReturnBtn").disabled = false;
+
         teamScores[teamId] = (teamScores[teamId] || 0) + 1;
         refreshTeamBadge(teamId);
 
@@ -1521,7 +1639,7 @@
         card
           .querySelectorAll(".winner-btn")
           .forEach((b) => (b.disabled = true));
-        card.classList.remove("is-answering");
+        card.classList.remove("is-answering", "is-disabled");
         card.classList.add("is-winner");
         const scorePill = card.querySelector(".score-pill span");
         if (scorePill) scorePill.innerText = teamScores[teamId];
@@ -1575,6 +1693,13 @@
           .forEach((b) => (b.disabled = true));
         card.classList.add("is-frozen", "is-loser");
 
+        // Pag na-click ang freeze, hindi na magiging gray uli ang ibang team na hindi pa resolved
+        document.querySelectorAll("#teamArena .fighter-card").forEach((c) => {
+          if (!c.dataset.resolved) {
+            c.classList.remove("is-disabled");
+          }
+        });
+
         if (isAnswering) {
           isAnswering = false;
           resumeTimer(savedTime);
@@ -1589,6 +1714,7 @@
           stopGameplayEngines();
           document.getElementById("teamDrawBtn").disabled = true;
           document.getElementById("teamDrawBtn").style.display = "none";
+          document.getElementById("teamReturnBtn").disabled = false;
         }
       }
 
@@ -1609,7 +1735,7 @@
           .querySelectorAll("#teamArena .fighter-card")
           .forEach((card) => {
             card.dataset.resolved = "draw";
-            card.classList.remove("is-answering");
+            card.classList.remove("is-answering", "is-disabled");
             card
               .querySelectorAll(".winner-btn")
               .forEach((b) => (b.disabled = true));
@@ -1624,6 +1750,7 @@
         document.getElementById("jumbleText").style.display = "none";
         document.getElementById("correctText").style.display = "block";
         document.getElementById("teamDrawBtn").style.display = "none";
+        document.getElementById("teamReturnBtn").disabled = false;
       }
 
       function startGameplayEngines() {
@@ -1666,6 +1793,16 @@
         document.getElementById("correctText").style.display = "block";
         document.getElementById("teamDrawBtn").disabled = true;
         document.getElementById("teamDrawBtn").style.display = "none";
+
+        // Hindi na disable ang Next Question kapag tapos na ang oras
+        document.getElementById("teamReturnBtn").disabled = false;
+
+        // Lahat ng team ay naka-gray at disable ang mga buttons ng correct at freeze
+        document.querySelectorAll("#teamArena .fighter-card").forEach((c) => {
+          c.classList.remove("is-answering");
+          c.classList.add("is-disabled");
+          c.querySelectorAll(".winner-btn").forEach((b) => (b.disabled = true));
+        });
       }
 
       function fireConfetti(color) {
@@ -1707,8 +1844,9 @@
             teamScores[k] = 0;
           });
           document
-            .querySelectorAll(".team-badge .tb-score")
+            .querySelectorAll(".team-badge .tb-score .tb-num")
             .forEach((s) => (s.innerText = "0"));
+          updateLeaderCrowns();
           shuffleArray(shuffledPool);
         }
       }
@@ -1725,18 +1863,26 @@
       /* ============ VICTORY SCREEN LOGIC ============ */
       function showVictoryScreen() {
         closeMingle();
-        let topTeam = null,
+        let topTeams = [],
           maxScore = -Infinity;
+
         Object.entries(teamScores).forEach(([t, s]) => {
           if (s > maxScore) {
             maxScore = s;
-            topTeam = t;
+            topTeams = [t];
+          } else if (s === maxScore) {
+            topTeams.push(t);
           }
         });
 
-        const text = topTeam
-          ? `🎉 Team ${topTeam} Wins with ${maxScore} Points! 🎉`
-          : "Great Game Everyone!";
+        let text = "Great Game Everyone!";
+        if (topTeams.length === 1) {
+          text = `🎉 Team ${topTeams[0]} Wins with ${maxScore} Points! 🎉`;
+        } else if (topTeams.length > 1) {
+          const teamList = topTeams.map((t) => `Team ${t}`).join(" & ");
+          text = `🤝 DRAW! ${teamList} Win with ${maxScore} Points! 🎉`;
+        }
+
         document.getElementById("winnerPodiumText").innerText = text;
         document.getElementById("victoryModal").classList.add("open");
         fireConfetti(1);
@@ -1812,11 +1958,13 @@
                 topId = k;
               }
             });
-            if (topId !== null) {
-              const myVal = teamScores[rewardTargetTeam];
+            const myVal = teamScores[rewardTargetTeam] || 0;
+            if (topId !== null && topScore > myVal) {
               teamScores[rewardTargetTeam] = topScore;
               teamScores[topId] = myVal;
               refreshTeamBadge(topId);
+            } else {
+              teamScores[rewardTargetTeam] = myVal + 3;
             }
           }
 
@@ -1857,7 +2005,7 @@
         if (/^[1-9]$/.test(e.key)) {
           const idx = parseInt(e.key, 10) - 1;
           const cards = document.querySelectorAll("#teamArena .fighter-card");
-          if (cards[idx]) {
+          if (cards[idx] && !cards[idx].classList.contains("is-disabled")) {
             if (e.shiftKey) markTeamWrong(cards[idx].dataset.teamid);
             else resolveTeamWinner(cards[idx].dataset.teamid);
           }
@@ -1869,7 +2017,8 @@
           resolveTeamDraw();
         if (
           e.key === "Enter" &&
-          document.getElementById("teamReturnBtn").style.display !== "none"
+          document.getElementById("teamReturnBtn").style.display !== "none" &&
+          !document.getElementById("teamReturnBtn").disabled
         )
           returnToRoomLayout();
         if (e.key === "Escape") closeMingle();
@@ -2065,6 +2214,13 @@
         object-fit: cover;
         border-radius: 6px;
         background: #e5e7eb;
+        transition:
+          border-color 0.2s,
+          background 0.2s;
+      }
+      .we-row img.drag-over {
+        border: 2px dashed #3b82f6 !important;
+        background: #dbeafe !important;
       }
       .we-row input,
       .we-row select {
@@ -2205,7 +2361,11 @@
               <option value="word" ${!isQa ? "selected" : ""}>Word</option>
               <option value="qa" ${isQa ? "selected" : ""}>Q&A</option>
             </select>
-            <img src="${item.imgSrc || ""}" onerror="this.style.opacity=.3" alt="">
+            <img src="${item.imgSrc || ""}" onerror="this.style.opacity=.3" alt="" 
+                 ondragover="handleImgDragOver(event)" 
+                 ondragleave="handleImgDragLeave(event)" 
+                 ondrop="handleImgDrop(event, ${i})"
+                 title="Drag and drop an image file here">
             ${isQa ? `<input type="text" placeholder="Question..." value="${escapeAttr(item.question)}" oninput="editorDraft[${i}].question=this.value">` : `<input type="text" placeholder="Word..." value="${escapeAttr(item.word)}" oninput="editorDraft[${i}].word=this.value">`}
             ${isQa ? `<input type="text" placeholder="Answer..." value="${escapeAttr(item.answer)}" oninput="editorDraft[${i}].answer=this.value">` : `<input type="text" placeholder="Meaning..." value="${escapeAttr(item.japanese)}" oninput="editorDraft[${i}].japanese=this.value">`}
             <input type="text" placeholder="Sub..." value="${escapeAttr(item.japanese)}" oninput="editorDraft[${i}].japanese=this.value">
@@ -2218,6 +2378,32 @@
           </div>`;
         }
         list.innerHTML = html;
+      }
+
+      function handleImgDragOver(e) {
+        e.preventDefault();
+        e.currentTarget.classList.add("drag-over");
+      }
+
+      function handleImgDragLeave(e) {
+        e.currentTarget.classList.remove("drag-over");
+      }
+
+      function handleImgDrop(e, i) {
+        e.preventDefault();
+        e.currentTarget.classList.remove("drag-over");
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+          const file = files[0];
+          if (file.type.startsWith("image/")) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              editorDraft[i].imgSrc = ev.target.result;
+              renderWordEditor();
+            };
+            reader.readAsDataURL(file);
+          }
+        }
       }
 
       function escapeAttr(s) {
