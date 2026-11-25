@@ -148,6 +148,15 @@
         text-align: center;
         background: white;
       }
+      .controls select {
+        padding: 8px 10px;
+        border: 1.5px solid var(--line);
+        border-radius: 10px;
+        font-weight: 700;
+        font-family: inherit;
+        background: white;
+        cursor: pointer;
+      }
       .controls input[type="range"] {
         width: 80px;
         cursor: pointer;
@@ -310,6 +319,16 @@
         position: relative;
         z-index: 1;
       }
+
+      /* Column Layout Mode para sa Classroom Wrapper (Team 1 nasa kaliwa) */
+      #classroom-wrapper.layout-column {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 20px;
+      }
+
       .row-container {
         display: flex;
         align-items: center;
@@ -318,6 +337,14 @@
         margin-bottom: 18px;
         width: 100%;
       }
+
+      /* Adjust row-container kapag Column Mode */
+      #classroom-wrapper.layout-column .row-container {
+        flex-direction: column;
+        width: auto;
+        margin-bottom: 0;
+      }
+
       .desk-row {
         display: flex;
         gap: 12px;
@@ -329,6 +356,17 @@
         border: 3px solid rgba(255, 255, 255, 0.5);
         transition: border-color 0.3s;
       }
+
+      /* Adjust desk-row para maging 2 tao side-by-side sa bawat row kapag Column Mode */
+      #classroom-wrapper.layout-column .desk-row {
+        display: grid;
+        grid-template-columns: repeat(2, 60px);
+        gap: 12px;
+      }
+      #classroom-wrapper.layout-column .slot {
+        margin-right: 0 !important;
+      }
+
       .slot {
         width: 60px;
         height: 60px;
@@ -600,6 +638,10 @@
         letter-spacing: 8px;
         min-height: 66px;
       }
+      .image-item {
+        display: flex;
+        justify-content: center;
+      }
       .qa-question-display {
         font-size: 2.4rem;
         font-weight: 800;
@@ -608,7 +650,7 @@
         font-family: "Poppins", "Fredoka", sans-serif !important;
       }
       .correct-reveal {
-        font-size: 3.5rem;
+        font-size: 1.8rem;
         font-weight: 900;
         background: linear-gradient(135deg, #10b981, #059669);
         -webkit-background-clip: text;
@@ -1030,7 +1072,14 @@
     <div class="controls">
       <label>Slots <input type="number" id="slotCount" value="8" /></label>
       <label>Fill <input type="number" id="fillCount" value="8" /></label>
-      <button onclick="addRow()">➕ Add Row</button>
+      <label
+        >Layout
+        <select id="teamLayoutMode" onchange="toggleTeamLayout(this.value)">
+          <option value="row">Row ➡️</option>
+          <option value="column">Column ⬇️</option>
+        </select>
+      </label>
+      <button onclick="addRow()">➕ Add Team</button>
       <button
         id="btnPickPair"
         class="btn-versus"
@@ -1098,6 +1147,11 @@
               </div>
               <div class="scrambled-display" id="jumbleText"></div>
             </div>
+            <div class="mingle-images">
+              <div class="image-item">
+                <img src="" id="vocabImg" alt="" style="display: none" />
+              </div>
+            </div>
             <div id="qaContainer" style="display: none">
               <div class="qa-question-display" id="qaQuestionText">
                 Question text here?
@@ -1112,11 +1166,7 @@
             </div>
             <div class="correct-reveal" id="correctText">ANSWER!</div>
           </div>
-          <div class="mingle-images">
-            <div class="image-item">
-              <img src="" id="vocabImg" alt="" style="display: none" />
-            </div>
-          </div>
+
           <div id="teamArena"></div>
           <div
             id="teamDrawZone"
@@ -1193,6 +1243,15 @@
         globalVolume = parseFloat(val);
         allSfx.forEach((s) => (s.volume = globalVolume));
         if (musicGainNode) musicGainNode.gain.value = 0.25 * globalVolume; // PINALAKAS ANG BGM VOLUME (MULA 0.08 NAGING 0.25)
+      }
+
+      function toggleTeamLayout(mode) {
+        const wrapper = document.getElementById("classroom-wrapper");
+        if (mode === "column") {
+          wrapper.classList.add("layout-column");
+        } else {
+          wrapper.classList.remove("layout-column");
+        }
       }
 
       let nextNumber = 1,
@@ -1303,7 +1362,9 @@
           updateLeaderCrowns();
         };
         container.append(badge, newRow, del);
-        wrapper.prepend(container);
+
+        // Dagdag: I-append lang para magsimula sa Kaliwa ang Team 1 (Left to Right sequence)
+        wrapper.appendChild(container);
         updateLeaderCrowns();
       }
 
